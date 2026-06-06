@@ -1,9 +1,8 @@
-<<<<<<< HEAD
 # 🛡️ Fraud Detection & Trust Scoring System
 
-## East African Rental Market | Hackathon Challenge #04
+## East African Rental Market | Hackathon 
 
-**Participant:** Frank Karani | **Country:** Tanzania
+**Participant:** kindness | **Country:** Tanzania
 
 ---
 

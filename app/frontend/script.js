@@ -196,3 +196,54 @@ startLEDIdleBlink();
 loadScenarios();
 
 console.log("Script loaded successfully. API_URL:", API_URL);
+
+// Supplier Registration Function
+async function registerSupplier() {
+    const businessName = document.getElementById("businessName").value;
+    const email = document.getElementById("email").value;
+    const phone = document.getElementById("phone").value;
+    const location = document.getElementById("location").value;
+    const plan = document.getElementById("plan").value;
+    const paymentMethod = document.getElementById("paymentMethod").value;
+    
+    if (!businessName || !email || !phone) {
+        document.getElementById("supplierResult").innerHTML = '<div style="color: red;">Please fill all required fields</div>';
+        return;
+    }
+    
+    document.getElementById("supplierResult").innerHTML = '<div style="text-align: center;">🔄 Registering...</div>';
+    
+    const data = {
+        business_name: businessName,
+        email: email,
+        phone: phone,
+        location: location,
+        plan: plan,
+        payment_method: paymentMethod
+    };
+    
+    try {
+        const response = await fetch(`${API_URL}/supplier/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        
+        if (response.ok) {
+            document.getElementById("supplierResult").innerHTML = `
+                <div style="background: #dcfce7; padding: 15px; border-radius: 10px;">
+                    <div style="color: #064e3b; font-weight: bold;">✅ Registration Successful!</div>
+                    <div><strong>Supplier ID:</strong> ${result.supplier_id}</div>
+                    <div><strong>API Key:</strong> <code style="background: #e2e8f0; padding: 2px 5px; border-radius: 4px;">${result.api_key}</code></div>
+                    <div><strong>Payment Ref:</strong> ${result.payment_ref}</div>
+                    <div style="margin-top: 10px;">⚠️ Complete payment to activate subscription</div>
+                </div>
+            `;
+        } else {
+            document.getElementById("supplierResult").innerHTML = `<div style="color: red;">Error: ${result.detail || "Registration failed"}</div>`;
+        }
+    } catch (error) {
+        document.getElementById("supplierResult").innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+    }
+}

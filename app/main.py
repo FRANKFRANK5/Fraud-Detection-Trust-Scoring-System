@@ -15,6 +15,26 @@ from datetime import datetime
 from pathlib import Path
 
 # ============================================
+# API SERVICES IMPORTS
+# ============================================
+
+# Import API services (zitakazoundwa kwenye folder app/services/)
+try:
+    from app.services.briq_sms import send_verification_sms, verify_phone
+    from app.services.tembo_plus import initiate_tembo_payment, verify_tembo_payment
+    from app.services.senjaro_pay import process_senjaro_payment, verify_senjaro_payment
+    SERVICES_AVAILABLE = True
+except ImportError:
+    SERVICES_AVAILABLE = False
+    # If services not available, create placeholder functions
+    async def send_verification_sms(phone): return {"success": False, "error": "Service not available"}
+    async def verify_phone(phone, code): return {"verified": False, "error": "Service not available"}
+    async def initiate_tembo_payment(phone, amount, desc): return {"success": False, "error": "Service not available"}
+    async def verify_tembo_payment(ref): return {"verified": False, "error": "Service not available"}
+    async def process_senjaro_payment(phone, amount, email): return {"success": False, "error": "Service not available"}
+    async def verify_senjaro_payment(ref): return {"verified": False, "error": "Service not available"}
+
+# ============================================
 # DATA MODELS (Pydantic Schemas)
 # ============================================
 
@@ -49,6 +69,20 @@ class DetectionScenario(BaseModel):
     description: str
     indicators: List[str]
 
+# API Request Models
+class SMSRequest(BaseModel):
+    phone: str
+
+class OTPRequest(BaseModel):
+    phone: str
+    code: int
+
+class PaymentRequest(BaseModel):
+    phone: str
+    amount: int
+    email: str = None
+    description: str = "Fraud Detection Subscription"
+
 # ============================================
 # EAST AFRICAN MARKET DATA
 # ============================================
@@ -75,14 +109,9 @@ SUSPICIOUS_KEYWORDS = {
 }
 
 VALID_CITIES = {
-    # Lowercase
     "dar es salaam", "nairobi", "kampala", "arusha", "mombasa",
     "zanzibar", "kisumu", "mwanza", "dodoma", "eldoret",
-    "jinja", "gulu", "mbale", "nakuru", "thika",
-    # Title case (kama inavyotumwa na frontend)
-    "Dar es Salaam", "Nairobi", "Kampala", "Arusha", "Mombasa",
-    "Zanzibar", "Kisumu", "Mwanza", "Dodoma", "Eldoret",
-    "Jinja", "Gulu", "Mbale", "Nakuru", "Thika"
+    "jinja", "gulu", "mbale", "nakuru", "thika"
 }
 
 # ============================================
@@ -209,7 +238,7 @@ def calculate_trust_score(user_id: str) -> TrustScoreResponse:
 # ============================================
 
 app = FastAPI(
-    title="Fraud Detection & Trust Scoring API",
+    title="Fraud Detection & Trust Scoring System API",
     description="East African Rental Market - Hackathon Challenge #04",
     version="2.0.0"
 )
@@ -247,17 +276,29 @@ async def root():
 @app.get("/api/info")
 def api_info():
     return {
-        "service": "Fraud Detection & Trust Scoring",
+        "service": "Fraud Detection & Trust Scoring System",
         "participant": "Frank Karani",
-        "challenge": "#04 - Fraud Detection & Trust Scoring",
+        "challenge": "#04 - Fraud Detection & Trust Scoring System",
         "region": "East Africa (Tanzania, Kenya, Uganda)",
         "status": "operational",
-        "endpoints": ["/api/v1/detect", "/api/v1/trust-score/{user_id}", "/api/v1/scenarios"]
+        "endpoints": [
+            "/api/v1/detect",
+            "/api/v1/trust-score/{user_id}",
+            "/api/v1/scenarios",
+            "/api/v1/sms/send",
+            "/api/v1/sms/verify",
+            "/api/v1/payment/tembo",
+            "/api/v1/payment/senjaro"
+        ]
     }
 
 @app.get("/health")
 def health():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+# ============================================
+# CORE FRAUD DETECTION ENDPOINTS
+# ============================================
 
 @app.post("/api/v1/detect", response_model=FraudResponse)
 async def detect(listing: ListingRequest):
@@ -307,6 +348,68 @@ async def scenarios():
             indicators=["Low quality images", "Inconsistent features", "Reverse image match"]
         )
     ]
+
+# ============================================
+# API INTEGRATION ENDPOINTS (Briq SMS, TemboPLUS, Senjaro Pay)
+# ============================================
+
+@app.post("/api/v1/sms/send")
+async def send_sms(request: SMSRequest):
+    """Send verification SMS via Briq SMS API"""
+    try:
+        result = await send_verification_sms(request.phone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/sms/verify")
+async def verify_sms_code(request: OTPRequest):
+    """Verify OTP code from SMS"""
+    try:
+        result = await verify_phone(request.phone, request.code)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/payment/tembo")
+async def tembo_payment(request: PaymentRequest):
+    """Initiate payment via TemboPLUS (Tigo Pesa)"""
+    try:
+        result = await initiate_tembo_payment(request.phone, request.amount, request.description)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/payment/tembo/verify/{payment_ref}")
+async def verify_tembo_payment_status(payment_ref: str):
+    """Verify TemboPLUS payment status"""
+    try:
+        result = await verify_tembo_payment(payment_ref)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/payment/senjaro")
+async def senjaro_payment(request: PaymentRequest):
+    """Initiate payment via Senjaro Pay"""
+    try:
+        result = await process_senjaro_payment(request.phone, request.amount, request.email or "")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/payment/senjaro/verify/{payment_ref}")
+async def verify_senjaro_payment_status(payment_ref: str):
+    """Verify Senjaro Pay payment status"""
+    try:
+        result = await verify_senjaro_payment(payment_ref)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
+# MAIN ENTRY POINT
+# ============================================
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🛡️ Fraud Detection & Trust Scoring System
 
 ## East African Rental Market | Hackathon Challenge #04
@@ -115,3 +116,7 @@ The system is designed to integrate with East African digital identity systems:
 
     NIN (Uganda) - National ID validation
 
+=======
+# Fraud-Detection-Trust-Scoring-System
+Real-time fraud detection and trust scoring system for East African rental market with SMS and payment integration. Built for Pumzika Hackathon 2026.
+>>>>>>> 862582c8acf731f7a6c07f212812a08cf2ce9a69

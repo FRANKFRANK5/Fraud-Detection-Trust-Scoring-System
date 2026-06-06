@@ -1,5 +1,5 @@
-// API URL - Sahihi kwa Render deployment
-const API_URL = "https://fraud-detection-east-africa.onrender.com";
+// API URL - Sahihi kwa Render deployment (NEW)
+const API_URL = "https://fraud-detection-trust-scoring-system.onrender.com";
 
 // LED Functions
 function updateRiskLED(riskLevel) {
